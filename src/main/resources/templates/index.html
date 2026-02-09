@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Health Care System | Home</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; }
+        .container { max-width: 800px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px; }
+        .nav-buttons { margin-top: 30px; }
+        .btn { 
+            display: inline-block; padding: 15px 30px; margin: 10px; 
+            background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; 
+        }
+        .btn:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Welcome to Health Care System</h1>
+        <p>Your health is our priority. Please select your portal below.</p>
+
+        <div class="nav-buttons">
+            <a th:href="@{/doctor-login}" class="btn">Doctor Portal</a>
+            
+            <a th:href="@{/patient-login}" class="btn">Patient Portal</a>
+            
+            <a th:href="@{/about}" class="btn" style="background-color: #6c757d;">About Us</a>
+        </div>
+    </div>
+
+</body>
+</html>

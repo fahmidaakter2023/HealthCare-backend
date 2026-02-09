@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Select a Doctor</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 40px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: left; }
+        th { background-color: #007bff; color: white; }
+        .book-btn { background: #28a745; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; text-decoration: none; }
+        .book-btn:hover { background: #218838; }
+        .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; margin: 10% auto; padding: 20px; width: 300px; border-radius: 10px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Available Doctors</h2>
+    <p>Select a doctor to schedule your appointment.</p>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Specialization</th>
+                <th>Email</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="doc : ${doctors}">
+                <td th:text="${'Dr. ' + doc.name}">Name</td>
+                <td th:text="${doc.specialization}">Spec</td>
+                <td th:text="${doc.email}">Email</td>
+                <td>
+                    <button class="book-btn" th:onclick="openBooking([[${doc.name}]])">Select Doctor</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <br>
+    <a th:href="@{/patient-home}">← Back to Dashboard</a>
+</div>
+
+<div id="bookingModal" class="modal">
+    <div class="modal-content">
+        <h3>Book Appointment</h3>
+        <p id="selectedDocText"></p>
+        <form th:action="@{/confirm-appointment}" method="post">
+            <input type="hidden" name="doctorName" id="hiddenDocName">
+            <label>Choose Date:</label>
+            <input type="date" name="date" required style="width: 90%; padding: 10px; margin: 10px 0;">
+            <br><br>
+            <button type="submit" class="book-btn">Confirm Booking</button>
+            <button type="button" onclick="closeBooking()" style="background:#6c757d;" class="book-btn">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openBooking(docName) {
+        document.getElementById('bookingModal').style.display = 'block';
+        document.getElementById('selectedDocText').innerText = "Booking with Dr. " + docName;
+        document.getElementById('hiddenDocName').value = docName;
+    }
+    function closeBooking() {
+        document.getElementById('bookingModal').style.display = 'none';
+    }
+</script>
+
+</body>
+</html>

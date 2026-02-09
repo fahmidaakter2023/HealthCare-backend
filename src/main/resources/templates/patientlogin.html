@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Patient Login | Health Care System</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; }
+        
+        .input-group { 
+            position: relative; 
+            width: 100%; 
+            max-width: 300px; 
+            margin: 10px auto; 
+        }
+
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid #ddd; 
+            border-radius: 4px; 
+            box-sizing: border-box; 
+            font-size: 14px;
+        }
+
+        .eye-icon { 
+            position: absolute; 
+            right: 12px; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            cursor: pointer; 
+            color: #555;
+            user-select: none;
+            font-size: 18px;
+            z-index: 10;
+        }
+
+        .login-btn { width: 100%; max-width: 300px; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        
+        /* Captcha container that holds the box and the refresh icon */
+        .captcha-container {
+            position: relative;
+            width: 150px;
+            margin: 10px auto;
+        }
+
+        .captcha-box { 
+            background: #333; 
+            color: #fff; 
+            padding: 12px; 
+            font-weight: bold; 
+            letter-spacing: 8px; 
+            border-radius: 4px; 
+            user-select: none; 
+            width: 100%;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .refresh-icon {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 16px;
+            color: #aaa;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        .refresh-icon:hover { color: #fff; }
+
+        .error-msg { color: #1a1717; background-color: #f84554; padding: 8px; border-radius: 5px; margin-bottom: 10px; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <h2>Patient Login</h2>
+        
+        
+        <form th:action="@{/patient-login}" method="post">
+            <div class="input-group">
+                <input type="text" name="username" placeholder="Username" required>
+            </div>
+            
+            <div class="input-group">
+                <input type="password" name="password" id="passInput" placeholder="Password" required>
+                <span class="eye-icon" id="toggleEye" onclick="togglePass()">👁️</span>
+            </div>
+
+            <div class="captcha-container">
+                <div class="captcha-box" id="captchaBox" th:text="${captchaDisplay}">CODE</div>
+                <button type="button" class="refresh-icon" onclick="refreshCaptcha()" title="Refresh Captcha">
+                    🔄
+                </button>
+            </div>
+            
+            <div class="input-group">
+                <input type="text" name="captchaInput" placeholder="Enter Captcha" required>
+            </div>
+
+            <div th:if="${error}" class="error-msg" th:text="${error}"></div>
+
+            <button type="submit" class="login-btn">Login</button>
+        </form>
+
+        <p style="margin-top: 20px; font-size: 0.9rem;">
+            New Patient? <a th:href="@{/patient-signup}">Create an account</a>
+        </p>
+        <a th:href="@{/}">← Back to Home</a>
+    </div>
+
+    <script>
+        function refreshCaptcha() {
+            fetch('/api/refresh-captcha')
+                .then(response => response.text())
+                .then(newCode => {
+                    document.getElementById('captchaBox').innerText = newCode;
+                })
+                .catch(err => console.error('Error:', err));
+        }
+
+        function togglePass() {
+            const passInput = document.getElementById("passInput");
+            const eyeIcon = document.getElementById("toggleEye");
+            
+            if (passInput.type === "password") {
+                passInput.type = "text";
+                eyeIcon.textContent = "👁️‍🗨️"; 
+            } else {
+                passInput.type = "password";
+                eyeIcon.textContent = "👁️";
+            }
+        }
+    </script>
+</body>
+</html>
