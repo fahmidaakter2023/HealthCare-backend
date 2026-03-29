@@ -5,17 +5,18 @@ import com.example.HealthCare.entity.patient;
 import com.example.HealthCare.repository.appointmentrepository;
 import com.example.HealthCare.repository.doctorrepository;
 import com.example.HealthCare.repository.patientrepository;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.Random;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-@Controller
+@RestController
+@RequestMapping("/api/patient")
+@CrossOrigin(origins = "http://localhost:3001") // React dev server URL
 public class patientcontroller {
 
     @Autowired
@@ -27,125 +28,67 @@ public class patientcontroller {
     @Autowired
     private appointmentrepository appRepo;
 
-    // --- HOME & AUTHENTICATION ---
+    // --- PATIENT REGISTRATION ---
+    @PostMapping("/register")
+    public ResponseEntity<?> registerPatient(@RequestBody Map<String, String> data) {
+        String username = data.get("username");
 
-    @GetMapping("/")
-    public String homePage() {
-        return "index";
-    }
-
-    @GetMapping("/patient-login")
-    public String showLoginPage(Model model, HttpSession session) {
-        if (!model.containsAttribute("captchaDisplay")) {
-            String captcha = String.valueOf(new Random().nextInt(9000) + 1000);
-            session.setAttribute("captchaCode", captcha);
-            model.addAttribute("captchaDisplay", captcha);
-        }
-        return "patientlogin";
-    }
-
-    @GetMapping("/patient-signup")
-    public String showSignUpPage() {
-        return "signup";
-    }
-
-    @PostMapping("/register-patient")
-    public String registerPatient(@RequestParam String name, @RequestParam String email,
-            @RequestParam String phone, @RequestParam int age,
-            @RequestParam String gender, @RequestParam String username,
-            @RequestParam String password, Model model, HttpSession session) {
-
-        patient existingPatient = repository.findByUsername(username);
-        if (existingPatient != null) {
-            model.addAttribute("error", "Username already exists!");
-            return "signup";
+        if (repository.findByUsername(username) != null) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Username already exists!");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
         }
 
         patient newPatient = new patient();
-        newPatient.setName(name);
-        newPatient.setEmail(email);
-        newPatient.setPhone(phone);
-        newPatient.setAge(age);
-        newPatient.setGender(gender);
+        newPatient.setName(data.get("name"));
+        newPatient.setEmail(data.get("email"));
+        newPatient.setPhone(data.get("phone"));
+        newPatient.setAge(Integer.parseInt(data.get("age")));
+        newPatient.setGender(data.get("gender"));
         newPatient.setUsername(username);
-        newPatient.setPassword(password);
+        newPatient.setPassword(data.get("password")); // Optional: hash this later
 
         repository.save(newPatient);
 
-        model.addAttribute("message", "Registration successful! Please login.");
-        return showLoginPage(model, session);
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Registration successful! Please login.");
+        return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/patient-login")
-    public String loginProcess(@RequestParam String username,
-            @RequestParam String password,
-            @RequestParam String captchaInput,
-            HttpSession session,
-            Model model) {
-        try {
-            String sessionCaptcha = (String) session.getAttribute("captchaCode");
+    // --- PATIENT LOGIN ---
+    @PostMapping("/login")
+    public ResponseEntity<?> patientLogin(@RequestBody Map<String, String> loginData) {
+        String username = loginData.get("username");
+        String password = loginData.get("password");
 
-            if (sessionCaptcha == null || !sessionCaptcha.equals(captchaInput)) {
-                model.addAttribute("error", "Invalid Captcha code!");
-                return showLoginPage(model, session);
-            }
-
-            patient existingPatient = repository.findByUsername(username);
-            if (existingPatient != null && password.equals(existingPatient.getPassword())) {
-                session.setAttribute("patientName", existingPatient.getName());
-                return "redirect:/patient-home";
-            } else {
-                model.addAttribute("error", "Invalid username or password");
-                return showLoginPage(model, session);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            model.addAttribute("error", "System error: " + e.getMessage());
-            return "patientlogin";
+        patient existingPatient = repository.findByUsername(username);
+        if (existingPatient != null && existingPatient.getPassword().equals(password)) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", existingPatient.getId());
+            response.put("name", existingPatient.getName());
+            response.put("email", existingPatient.getEmail());
+            response.put("message", "Login successful");
+            return ResponseEntity.ok(response);
         }
+
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "Invalid username or password");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
 
-    // --- DASHBOARD ---
-
-    @GetMapping("/patient-home")
-    public String showDashboard(HttpSession session, Model model) {
-        String patientName = (String) session.getAttribute("patientName");
-
-        // Redirect to login if user tries to access dashboard without logging in
-        if (patientName == null) {
-            return "redirect:/patient-login";
-        }
-
-        // Fetch appointments for this specific patient to show in the table
-        List<appointment> myAppointments = appRepo.findByPatientName(patientName);
-
-        model.addAttribute("patientName", patientName);
-        model.addAttribute("appointments", myAppointments);
-
-        return "patienthome";
+    // --- GET PATIENT APPOINTMENTS ---
+    @GetMapping("/{username}/appointments")
+    public ResponseEntity<?> getAppointments(@PathVariable String username) {
+        List<appointment> appointments = appRepo.findByPatientName(username);
+        return ResponseEntity.ok(appointments);
     }
 
-    // --- APPOINTMENT BOOKING ---
-
-    @GetMapping("/book-appointment")
-    public String showBookingPage(Model model, HttpSession session) {
-        if (session.getAttribute("patientName") == null) {
-            return "redirect:/patient-login";
-        }
-        model.addAttribute("doctors", docRepo.findAll());
-        return "appointment"; 
-    }
-
-    @PostMapping("/confirm-appointment")
-    public String confirmAppointment(@RequestParam String doctorName,
-            @RequestParam String date,
-            HttpSession session,
-            RedirectAttributes redirectAttributes) {
-        String patientName = (String) session.getAttribute("patientName");
-
-        if (patientName == null) {
-            return "redirect:/patient-login";
-        }
+    // --- BOOK APPOINTMENT ---
+    @PostMapping("/appointments")
+    public ResponseEntity<?> bookAppointment(@RequestBody Map<String, String> data) {
+        String patientName = data.get("patientName");
+        String doctorName = data.get("doctorName");
+        String date = data.get("date");
 
         appointment app = new appointment();
         app.setPatientName(patientName);
@@ -155,36 +98,37 @@ public class patientcontroller {
 
         appRepo.save(app);
 
-        redirectAttributes.addFlashAttribute("message", "Appointment request sent to Dr. " + doctorName + ". Status: Pending.");
-        return "redirect:/patient-home";
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Appointment request sent to Dr. " + doctorName + ". Status: Pending.");
+        return ResponseEntity.ok(response);
     }
 
-    // --- UTILS ---
-
-    @GetMapping("/api/refresh-captcha")
-    @ResponseBody
-    public String refreshCaptcha(HttpSession session) {
-        String newCaptcha = String.valueOf(new Random().nextInt(9000) + 1000);
-        session.setAttribute("captchaCode", newCaptcha);
-        return newCaptcha;
-    }
-
-    @GetMapping("/cancel-appointment/{id}")
-    public String cancelAppointment(@PathVariable Long id, RedirectAttributes redirectAttributes, HttpSession session) {
-        if (session.getAttribute("patientName") == null) {
-            return "redirect:/patient-login";
+    // --- CANCEL APPOINTMENT ---
+    @DeleteMapping("/appointments/{id}")
+    public ResponseEntity<?> cancelAppointment(@PathVariable Long id) {
+        if (!appRepo.existsById(id)) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Appointment not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         }
 
         appRepo.deleteById(id);
-        redirectAttributes.addFlashAttribute("message", "Appointment cancelled successfully.");
-        return "redirect:/patient-home";
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Appointment cancelled successfully.");
+        return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/patient-logout")
-    public String patientLogout(HttpSession session) {
-        if (session != null) {
-            session.invalidate();
-        }
-        return "redirect:/";
+    // --- LOGOUT ---
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout() {
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Logout successful");
+        return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/login-test")
+    public String testLogin() {
+        return "Login working";
+    }
+
 }

@@ -4,70 +4,62 @@ import com.example.HealthCare.entity.appointment;
 import com.example.HealthCare.entity.doctor;
 import com.example.HealthCare.repository.appointmentrepository;
 import com.example.HealthCare.repository.doctorrepository;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@Controller
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/doctor")
+@CrossOrigin(origins = "http://localhost:3001") // React dev server URL
 public class doctorcontroller {
 
     @Autowired
     private doctorrepository docRepo;
-    
+
     @Autowired
     private appointmentrepository appRepo;
 
-    @GetMapping("/doctor-login") 
-    public String showDoctorLogin() {
-        return "doctorlogin";
-    }
+    // Doctor login
+    @PostMapping("/login")
+    public ResponseEntity<?> doctorLogin(@RequestBody Map<String, String> loginData) {
+        String username = loginData.get("username");
+        String password = loginData.get("password");
 
-    // FIX: Added this missing mapping
-    @GetMapping("/doctor-signup")
-    public String showDoctorSignUp() {
-        return "doctorsignup";
-    }
-
-    @PostMapping("/doctor-login")
-    public String doctorLogin(@RequestParam String username,
-            @RequestParam String password,
-            HttpSession session, Model model) {
         doctor doc = docRepo.findByUsername(username);
-
         if (doc != null && doc.getPassword().equals(password)) {
-            session.setAttribute("doctorName", doc.getName());
-            session.setAttribute("specialization", doc.getSpecialization());
-            // Use redirect to prevent form resubmission
-            return "redirect:/doctor-home";
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", doc.getId());
+            response.put("name", doc.getName());
+            response.put("specialization", doc.getSpecialization());
+            response.put("email", doc.getEmail());
+            response.put("message", "Login successful");
+            return ResponseEntity.ok(response);
         }
 
-        model.addAttribute("error", "Invalid Username or Password");
-        return "doctorlogin";
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "Invalid Username or Password");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
 
-    @GetMapping("/doctor-home")
-    public String doctorDashboard(HttpSession session, Model model) {
-        String docName = (String) session.getAttribute("doctorName");
-        if (docName == null) {
-            return "redirect:/doctor-login";
-        }
-        model.addAttribute("name", docName);
-        return "doctorhome";
-    }
-
-    @PostMapping("/register-doctor")
-    public String registerDoctor(@RequestParam String name,
-            @RequestParam String specialization,
-            @RequestParam String email,
-            @RequestParam String username,
-            @RequestParam String password,
-            Model model) {
+    // Doctor registration
+    @PostMapping("/register")
+    public ResponseEntity<?> registerDoctor(@RequestBody Map<String, String> data) {
+        String name = data.get("name");
+        String specialization = data.get("specialization");
+        String email = data.get("email");
+        String username = data.get("username");
+        String password = data.get("password");
 
         if (docRepo.findByUsername(username) != null) {
-            model.addAttribute("error", "Username already taken!");
-            return "doctorsignup";
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Username already taken!");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
         }
 
         doctor newDoc = new doctor();
@@ -78,26 +70,44 @@ public class doctorcontroller {
         newDoc.setPassword(password);
 
         docRepo.save(newDoc);
-        model.addAttribute("message", "Registration successful! Please login.");
-        return "doctorlogin";
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Registration successful! Please login.");
+        return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/doctor-logout")
-    public String logout(HttpSession session) {
-        if (session != null) {
-            session.invalidate();
+    // Get all appointments
+    @GetMapping("/appointments")
+    public ResponseEntity<?> getAppointments() {
+        List<appointment> appointments = appRepo.findAll();
+        return ResponseEntity.ok(appointments);
+    }
+
+    // Confirm appointment
+    @PostMapping("/appointments/{id}/confirm")
+    public ResponseEntity<?> confirmAppointment(@PathVariable Long id) {
+        Optional<appointment> appOpt = appRepo.findById(id);
+        if (appOpt.isPresent()) {
+            appointment app = appOpt.get();
+            app.setStatus("Confirmed");
+            appRepo.save(app);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Appointment confirmed");
+            return ResponseEntity.ok(response);
         }
-        return "redirect:/";
+
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "Appointment not found");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
-
-    @GetMapping("/doctor/confirm-appointment/{id}")
-public String doctorConfirmAppointment(@PathVariable Long id) {
-    appointment app = appRepo.findById(id).orElse(null);
-    if (app != null) {
-        app.setStatus("Confirmed"); // Change status from Pending to Confirmed
-        appRepo.save(app);
+    // Doctor logout
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout() {
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Logout successful");
+        return ResponseEntity.ok(response);
     }
-    return "redirect:/doctor-home"; // Redirect back to doctor dashboard
-}
+
 }
