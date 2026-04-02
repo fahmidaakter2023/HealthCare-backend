@@ -18,6 +18,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
                     config.addAllowedOrigin("http://localhost:3000");
+                    config.addAllowedOrigin("https://healthcarewebfasm.netlify.app");
+
                     config.addAllowedHeader("*");
                     config.addAllowedMethod("*");
                     return config;
