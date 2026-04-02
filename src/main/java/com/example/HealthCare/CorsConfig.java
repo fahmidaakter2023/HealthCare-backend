@@ -15,6 +15,7 @@ public class CorsConfig {
         config.setAllowCredentials(false);
         config.addAllowedOrigin("http://localhost:3000");
         config.addAllowedOrigin("https://healthcarewebfasm.netlify.app");
+        config.addAllowedOrigin("*");
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
 
