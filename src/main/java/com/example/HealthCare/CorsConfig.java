@@ -14,6 +14,7 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(false);
         config.addAllowedOrigin("http://localhost:3000");
+        config.addAllowedOrigin("https://healthcarewebfasm.netlify.app");
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
 
