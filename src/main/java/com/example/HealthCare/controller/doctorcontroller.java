@@ -16,7 +16,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/doctor")
-@CrossOrigin(origins = "http://localhost:3001") // React dev server URL
+@CrossOrigin(origins = "http://localhost:3000")
 public class doctorcontroller {
 
     @Autowired
@@ -50,11 +50,7 @@ public class doctorcontroller {
     // Doctor registration
     @PostMapping("/register")
     public ResponseEntity<?> registerDoctor(@RequestBody Map<String, String> data) {
-        String name = data.get("name");
-        String specialization = data.get("specialization");
-        String email = data.get("email");
         String username = data.get("username");
-        String password = data.get("password");
 
         if (docRepo.findByUsername(username) != null) {
             Map<String, String> error = new HashMap<>();
@@ -63,11 +59,12 @@ public class doctorcontroller {
         }
 
         doctor newDoc = new doctor();
-        newDoc.setName(name);
-        newDoc.setSpecialization(specialization);
-        newDoc.setEmail(email);
+        newDoc.setName(data.get("name"));
+        newDoc.setSpecialization(data.get("specialization"));
+        newDoc.setEmail(data.get("email"));
+        newDoc.setPhone(data.get("phone"));
         newDoc.setUsername(username);
-        newDoc.setPassword(password);
+        newDoc.setPassword(data.get("password"));
 
         docRepo.save(newDoc);
 
@@ -76,10 +73,22 @@ public class doctorcontroller {
         return ResponseEntity.ok(response);
     }
 
-    // Get all appointments
+    // Get ALL doctors for patient dropdown
+    @GetMapping("/all")
+    public ResponseEntity<?> getAllDoctors() {
+        List<doctor> doctors = docRepo.findAll();
+        return ResponseEntity.ok(doctors);
+    }
+
+    // Get appointments for specific doctor
     @GetMapping("/appointments")
-    public ResponseEntity<?> getAppointments() {
-        List<appointment> appointments = appRepo.findAll();
+    public ResponseEntity<?> getAppointments(@RequestParam(required = false) String doctorName) {
+        List<appointment> appointments;
+        if (doctorName != null && !doctorName.isEmpty()) {
+            appointments = appRepo.findByDoctorName(doctorName);
+        } else {
+            appointments = appRepo.findAll();
+        }
         return ResponseEntity.ok(appointments);
     }
 
@@ -91,12 +100,27 @@ public class doctorcontroller {
             appointment app = appOpt.get();
             app.setStatus("Confirmed");
             appRepo.save(app);
-
             Map<String, String> response = new HashMap<>();
             response.put("message", "Appointment confirmed");
             return ResponseEntity.ok(response);
         }
+        Map<String, String> error = new HashMap<>();
+        error.put("error", "Appointment not found");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
 
+    // Reject appointment
+    @PostMapping("/appointments/{id}/reject")
+    public ResponseEntity<?> rejectAppointment(@PathVariable Long id) {
+        Optional<appointment> appOpt = appRepo.findById(id);
+        if (appOpt.isPresent()) {
+            appointment app = appOpt.get();
+            app.setStatus("Cancelled");
+            appRepo.save(app);
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Appointment rejected");
+            return ResponseEntity.ok(response);
+        }
         Map<String, String> error = new HashMap<>();
         error.put("error", "Appointment not found");
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
@@ -109,5 +133,4 @@ public class doctorcontroller {
         response.put("message", "Logout successful");
         return ResponseEntity.ok(response);
     }
-
 }

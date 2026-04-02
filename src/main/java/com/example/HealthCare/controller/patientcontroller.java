@@ -3,7 +3,7 @@ package com.example.HealthCare.controller;
 import com.example.HealthCare.entity.appointment;
 import com.example.HealthCare.entity.patient;
 import com.example.HealthCare.repository.appointmentrepository;
-import com.example.HealthCare.repository.doctorrepository;
+//import com.example.HealthCare.repository.doctorrepository;
 import com.example.HealthCare.repository.patientrepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -16,14 +16,14 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/patient")
-@CrossOrigin(origins = "http://localhost:3001") // React dev server URL
+@CrossOrigin(origins = "http://localhost:3000")
 public class patientcontroller {
 
     @Autowired
     private patientrepository repository;
 
-    @Autowired
-    private doctorrepository docRepo;
+    // @Autowired
+    // private doctorrepository docRepo;
 
     @Autowired
     private appointmentrepository appRepo;
@@ -43,10 +43,13 @@ public class patientcontroller {
         newPatient.setName(data.get("name"));
         newPatient.setEmail(data.get("email"));
         newPatient.setPhone(data.get("phone"));
-        newPatient.setAge(Integer.parseInt(data.get("age")));
+        // newPatient.setAge(Integer.parseInt(data.get("age")));
+        if (data.get("age") != null && !data.get("age").isEmpty()) {
+            newPatient.setAge(Integer.parseInt(data.get("age")));
+        }
         newPatient.setGender(data.get("gender"));
         newPatient.setUsername(username);
-        newPatient.setPassword(data.get("password")); // Optional: hash this later
+        newPatient.setPassword(data.get("password"));
 
         repository.save(newPatient);
 
@@ -124,11 +127,6 @@ public class patientcontroller {
         Map<String, String> response = new HashMap<>();
         response.put("message", "Logout successful");
         return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/login-test")
-    public String testLogin() {
-        return "Login working";
     }
 
 }
